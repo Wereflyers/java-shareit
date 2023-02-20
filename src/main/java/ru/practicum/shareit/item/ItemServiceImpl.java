@@ -2,6 +2,7 @@ package ru.practicum.shareit.item;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
@@ -40,10 +41,12 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemForResponse> getAllForUser(long userId) {
+    public List<ItemForResponse> getAllForUser(long userId, int from, int size) {
+        if (from < 0 || size <= 0)
+            throw new ValidationException("Wrong parameters");
         if (userRepository.findById(userId).isEmpty())
             throw new NullPointerException("User " + userId + " is not found");
-        return itemRepository.findAllByOwnerId(userId).stream()
+        return itemRepository.findAllByOwnerId(userId, PageRequest.of(from / size, size)).stream()
                 .map(i -> createResponse(i, userId))
                 .collect(Collectors.toList());
     }
@@ -93,10 +96,14 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemForResponse> search(String req) {
-        if (req.isBlank())
+    public List<ItemForResponse> search(String req, int from, int size) {
+        if (from < 0 || size <= 0) {
+            throw new ValidationException("Wrong parameters");
+        }
+        if (req.isBlank()) {
             return new ArrayList<>();
-        return itemRepository.search(req).stream()
+        }
+        return itemRepository.search(req, PageRequest.of(from / size, size)).stream()
                 .map(i -> createResponse(i, i.getOwnerId()))
                 .collect(Collectors.toList());
     }
@@ -134,10 +141,12 @@ public class ItemServiceImpl implements ItemService {
         BookingShort nextBooking = null;
         if (userId == item.getOwnerId()) {
             if (getLastItemBooking(item.getId()) != null) {
-                lastBooking = new BookingShort(getLastItemBooking(item.getId()));
+                Booking last = getLastItemBooking(item.getId());
+                lastBooking = new BookingShort(last.getId(), last.getBookerId());
             }
             if (getNextItemBooking(item.getId()) != null) {
-                nextBooking = new BookingShort(getNextItemBooking(item.getId()));
+                Booking next = getNextItemBooking(item.getId());
+                nextBooking = new BookingShort(next.getId(), next.getBookerId());
             }
         }
         return ItemMapper.toItemForResponse(item, lastBooking, nextBooking, comments);
@@ -148,8 +157,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public Booking getNextItemBooking(Long itemId) {
-        List<Booking> bookings = bookingRepository.findAllByItemIdOrderByStart(
-                        itemId).stream()
+        List<Booking> bookings = bookingRepository.findAllByItemIdOrderByStart(itemId).stream()
                 .filter(b -> !b.getStart().isEqual(LocalDateTime.now()))
                 .filter(b -> !b.getEnd().isEqual(LocalDateTime.now()))
                 .filter(b -> (b.getStart().isAfter(LocalDateTime.now())))
@@ -163,8 +171,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public Booking getLastItemBooking(Long itemId) {
-        List<Booking> bookings = bookingRepository.findAllByItemIdOrderByStart(
-                        itemId).stream()
+        List<Booking> bookings = bookingRepository.findAllByItemIdOrderByStart(itemId).stream()
                 .filter(b -> !b.getStart().isEqual(LocalDateTime.now()))
                 .filter(b -> !b.getEnd().isEqual(LocalDateTime.now()))
                 .filter(b -> (b.getStart().isBefore(LocalDateTime.now())))

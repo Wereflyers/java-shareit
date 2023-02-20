@@ -8,7 +8,6 @@ import ru.practicum.shareit.item.dto.CommentForResponse;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemForResponse;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Validated
@@ -23,8 +22,9 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemForResponse> getAll(@RequestHeader("X-Sharer-User-Id") long userId) {
-        return itemService.getAllForUser(userId);
+    public List<ItemForResponse> getAll(@RequestHeader("X-Sharer-User-Id") long userId,
+                                        @RequestParam(defaultValue = "0") int from, @RequestParam(defaultValue = "100") int size) {
+        return itemService.getAllForUser(userId, from, size);
     }
 
     @GetMapping("/{id}")
@@ -33,13 +33,13 @@ public class ItemController {
     }
 
     @PostMapping
-    public ItemForResponse add(@RequestHeader("X-Sharer-User-Id") long userId, @Valid @RequestBody ItemDto itemDto) {
+    public ItemForResponse add(@RequestHeader("X-Sharer-User-Id") long userId, @RequestBody ItemDto itemDto) {
         return itemService.add(userId, itemDto);
     }
 
     @PatchMapping("/{id}")
     public ItemForResponse update(@RequestHeader("X-Sharer-User-Id") long userId, @PathVariable long id,
-                                  @Valid @RequestBody ItemDto itemDto) {
+                                  @RequestBody ItemDto itemDto) {
         return itemService.update(userId, id, itemDto);
     }
 
@@ -49,8 +49,9 @@ public class ItemController {
     }
 
     @GetMapping("/search")
-    public List<ItemForResponse> search(@RequestHeader("X-Sharer-User-Id") long userId, @RequestParam("text") String req) {
-        return itemService.search(req);
+    public List<ItemForResponse> search(@RequestHeader("X-Sharer-User-Id") long userId, @RequestParam("text") String req,
+                                        @RequestParam(defaultValue = "0") int from, @RequestParam(defaultValue = "100") int size) {
+        return itemService.search(req, from, size);
     }
 
     @PostMapping("/{id}/comment")

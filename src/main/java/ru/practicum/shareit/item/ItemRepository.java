@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
@@ -17,7 +18,7 @@ public interface ItemRepository extends JpaRepository<Item, Long>, QuerydslPredi
      * @param userId - идентификатор пользователя
      * @return List
      */
-    List<Item> findAllByOwnerId(long userId);
+    List<Item> findAllByOwnerId(long userId, Pageable pageable);
 
     /**
      * Поиск вещей, доступных для бронирования, по названию и описанию.
@@ -29,5 +30,7 @@ public interface ItemRepository extends JpaRepository<Item, Long>, QuerydslPredi
             "where (upper(i.name)  like upper(concat('%', ?1, '%')) " +
             "or upper(i.description) like upper(concat('%', ?1, '%'))) " +
             "and i.available = true ")
-    List<Item> search(String req);
+    List<Item> search(String req, Pageable pageable);
+
+    List<Item> findAllByRequestId(long requestId);
 }
